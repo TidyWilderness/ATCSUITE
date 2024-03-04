@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flight Strip Manager</title>
+    <title>Tidy's Flight Strip Manager</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -37,40 +37,69 @@
 
         #flightStrips {
             margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-start;
         }
 
         .flight-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 600px;
+            height: 160px;
             border: 1px solid #ccc;
             background-color: white;
-            padding: 10px;
-            margin-bottom: 10px;
-            width: 100%;
+            margin: 5px;
             position: relative;
             box-sizing: border-box;
             border-radius: 5px;
             box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+            transition: box-shadow 0.3s;
+            cursor: pointer;
+        }
+
+        .flight-box:hover {
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .highlight {
+            box-shadow: 0 0 10px rgba(255, 223, 77, 1);
         }
 
         .inbound {
-            background-color: #ffcccc;  /* Light red for inbound flights */
+            background-color: #ffcccc;
         }
 
         .outbound {
-            background-color: #ccffcc;  /* Light green for outbound flights */
+            background-color: #ccffcc;
         }
 
         .vfr {
-            background-color: #ccccff;  /* Light blue for VFR flights */
+            background-color: #ccccff;
         }
 
         h3 {
             margin: 0;
             color: #333;
+            font-size: 20px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .details-container {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            margin-top: 5px;
         }
 
         p {
-            margin: 5px 0;
+            margin: 5px 10px;
             color: #666;
+            font-size: 16px;
         }
 
         .delete-icon {
@@ -79,16 +108,29 @@
             right: 5px;
             cursor: pointer;
             color: #aaa;
-            font-size: 18px;
+            font-size: 20px;
         }
 
         .delete-icon:hover {
             color: #f00;
         }
+
+        .check-mark {
+            position: absolute;
+            bottom: 5px;
+            right: 5px;
+            font-size: 20px;
+            color: #00f;
+            display: none;
+        }
+
+        .highlight .check-mark {
+            display: block;
+        }
     </style>
 </head>
 <body>
-    <h1>Flight Strip Manager</h1>
+    <h1>Tidy's Flight Strip Manager</h1>
 
     <div>
         <label for="flightPlan">Paste Flight Plan:</label>
@@ -111,6 +153,7 @@
             this.route = route;
             this.flightLevel = flightLevel;
             this.squawk = squawk;
+            this.highlighted = false;
         }
 
         function FlightStripManager() {
@@ -126,6 +169,14 @@
                 this.displayFlightStrips();
             };
 
+            this.toggleHighlight = function (squawk) {
+                const strip = this.flightStrips.find(strip => strip.squawk === squawk);
+                if (strip) {
+                    strip.highlighted = !strip.highlighted;
+                    this.displayFlightStrips();
+                }
+            };
+
             this.displayFlightStrips = function () {
                 const flightList = document.getElementById('flightList');
                 flightList.innerHTML = '';
@@ -139,7 +190,6 @@
                         const flightBox = document.createElement('div');
                         flightBox.className = 'flight-box';
 
-                        // Determine class based on Departing and Arriving information
                         if (strip.departing && strip.arriving) {
                             flightBox.classList.add('outbound');
                         } else if (strip.departing) {
@@ -148,42 +198,61 @@
                             flightBox.classList.add('vfr');
                         }
 
+                        if (strip.highlighted) {
+                            flightBox.classList.add('highlight');
+                        }
+
+                        flightBox.onclick = function () {
+                            flightManager.toggleHighlight(strip.squawk);
+                        };
+
                         const callsignHeader = document.createElement('h3');
                         callsignHeader.textContent = `Callsign: ${strip.callsign}`;
                         flightBox.appendChild(callsignHeader);
 
+                        const detailsContainer = document.createElement('div');
+                        detailsContainer.className = 'details-container';
+
                         const aircraftInfo = document.createElement('p');
                         aircraftInfo.textContent = `Aircraft: ${strip.aircraft}`;
-                        flightBox.appendChild(aircraftInfo);
+                        detailsContainer.appendChild(aircraftInfo);
 
                         const departingInfo = document.createElement('p');
                         departingInfo.textContent = `Departing: ${strip.departing || 'N/A'}`;
-                        flightBox.appendChild(departingInfo);
+                        detailsContainer.appendChild(departingInfo);
 
                         const arrivingInfo = document.createElement('p');
                         arrivingInfo.textContent = `Arriving: ${strip.arriving || 'N/A'}`;
-                        flightBox.appendChild(arrivingInfo);
+                        detailsContainer.appendChild(arrivingInfo);
 
                         const routeInfo = document.createElement('p');
                         routeInfo.textContent = `Route: ${strip.route || 'N/A'}`;
-                        flightBox.appendChild(routeInfo);
+                        detailsContainer.appendChild(routeInfo);
 
                         const flightLevelInfo = document.createElement('p');
                         flightLevelInfo.textContent = `Flight Level: ${strip.flightLevel || 'N/A'}`;
-                        flightBox.appendChild(flightLevelInfo);
+                        detailsContainer.appendChild(flightLevelInfo);
 
                         const squawkInfo = document.createElement('p');
                         squawkInfo.textContent = `Squawk: ${strip.squawk || 'N/A'}`;
-                        flightBox.appendChild(squawkInfo);
+                        detailsContainer.appendChild(squawkInfo);
+
+                        flightBox.appendChild(detailsContainer);
 
                         const deleteIcon = document.createElement('span');
                         deleteIcon.className = 'delete-icon';
-                        deleteIcon.innerHTML = '&#10006;'; // Unicode character for 'X'
-                        deleteIcon.onclick = function () {
+                        deleteIcon.innerHTML = '&#10006;';
+                        deleteIcon.onclick = function (event) {
+                            event.stopPropagation(); // Prevents the box from being highlighted when clicking the delete icon
                             flightManager.removeFlightStrip(strip.squawk);
                         };
 
                         flightBox.appendChild(deleteIcon);
+
+                        const checkMark = document.createElement('span');
+                        checkMark.className = 'check-mark';
+                        checkMark.innerHTML = '&#10003;';
+                        flightBox.appendChild(checkMark);
 
                         flightList.appendChild(flightBox);
                     });
@@ -193,8 +262,13 @@
             this.generateSquawkCode = function () {
                 let squawkCode;
                 do {
-                    squawkCode = Math.floor(Math.random() * (7499 - 7000 + 1)) + 7000;
-                } while (this.isSquawkCodeTaken(squawkCode) || /[89]/.test(squawkCode.toString()));
+                    squawkCode = Math.floor(Math.random() * (7777 - 1000 + 1)) + 1000;
+                } while (
+                    this.isSquawkCodeTaken(squawkCode) ||
+                    squawkCode.toString().includes('8') ||
+                    squawkCode.toString().includes('9') ||
+                    [7500, 7600, 7700].includes(squawkCode)
+                );
 
                 return squawkCode;
             };
@@ -210,20 +284,17 @@
             const flightPlanInput = document.getElementById('flightPlan');
             const flightPlanText = flightPlanInput.value;
 
-            // Parse the flight plan text and create a FlightStrip object
             const flightStrip = parseFlightPlan(flightPlanText);
 
             if (flightStrip) {
                 flightManager.addFlightStrip(flightStrip);
-                flightPlanInput.value = '';  // Clear the textarea after adding the flight strip
+                flightPlanInput.value = '';
             } else {
                 alert('Invalid flight plan format. Please check and try again.');
             }
         }
 
         function parseFlightPlan(flightPlanText) {
-            // Implement your parsing logic here based on the provided flight plan format
-            // For simplicity, let's assume each line contains key: value pairs
             const lines = flightPlanText.split('\n');
             const flightStrip = {};
 
@@ -232,7 +303,6 @@
                 flightStrip[key] = values.join(':').trim();
             });
 
-            // Validate if essential information is present
             if (flightStrip.Callsign && flightStrip.Aircraft && (flightStrip.Departing || flightStrip.Arriving) && flightStrip.Route && flightStrip['Flight Level']) {
                 return new FlightStrip(
                     flightStrip.Callsign,
@@ -244,12 +314,16 @@
                     flightManager.generateSquawkCode()
                 );
             } else {
-                return null;  // Return null if essential information is missing
+                return null;
             }
         }
 
         document.addEventListener('DOMContentLoaded', function () {
             flightManager.displayFlightStrips();
+        });
+
+        document.addEventListener('click', function () {
+            flightManager.clearHighlights();
         });
     </script>
 </body>
