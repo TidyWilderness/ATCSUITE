@@ -145,13 +145,14 @@
     </div>
 
     <script>
-        function FlightStrip(callsign, aircraft, departing, arriving, route, flightLevel, squawk) {
+        function FlightStrip(callsign, aircraft, ifrVfr, departure, arrival, ifl, fl, squawk) {
             this.callsign = callsign;
             this.aircraft = aircraft;
-            this.departing = departing;
-            this.arriving = arriving;
-            this.route = route;
-            this.flightLevel = flightLevel;
+            this.ifrVfr = ifrVfr;
+            this.departure = departure;
+            this.arrival = arrival;
+            this.ifl = ifl;
+            this.fl = fl;
             this.squawk = squawk;
             this.highlighted = false;
         }
@@ -190,9 +191,9 @@
                         const flightBox = document.createElement('div');
                         flightBox.className = 'flight-box';
 
-                        if (strip.departing && strip.arriving) {
+                        if (strip.departure && strip.arrival) {
                             flightBox.classList.add('outbound');
-                        } else if (strip.departing) {
+                        } else if (strip.departure) {
                             flightBox.classList.add('inbound');
                         } else {
                             flightBox.classList.add('vfr');
@@ -217,21 +218,25 @@
                         aircraftInfo.textContent = `Aircraft: ${strip.aircraft}`;
                         detailsContainer.appendChild(aircraftInfo);
 
-                        const departingInfo = document.createElement('p');
-                        departingInfo.textContent = `Departing: ${strip.departing || 'N/A'}`;
-                        detailsContainer.appendChild(departingInfo);
+                        const ifrVfrInfo = document.createElement('p');
+                        ifrVfrInfo.textContent = `IFR/VFR: ${strip.ifrVfr}`;
+                        detailsContainer.appendChild(ifrVfrInfo);
 
-                        const arrivingInfo = document.createElement('p');
-                        arrivingInfo.textContent = `Arriving: ${strip.arriving || 'N/A'}`;
-                        detailsContainer.appendChild(arrivingInfo);
+                        const departureInfo = document.createElement('p');
+                        departureInfo.textContent = `Departure: ${strip.departure || 'N/A'}`;
+                        detailsContainer.appendChild(departureInfo);
 
-                        const routeInfo = document.createElement('p');
-                        routeInfo.textContent = `Route: ${strip.route || 'N/A'}`;
-                        detailsContainer.appendChild(routeInfo);
+                        const arrivalInfo = document.createElement('p');
+                        arrivalInfo.textContent = `Arrival: ${strip.arrival || 'N/A'}`;
+                        detailsContainer.appendChild(arrivalInfo);
 
-                        const flightLevelInfo = document.createElement('p');
-                        flightLevelInfo.textContent = `Flight Level: ${strip.flightLevel || 'N/A'}`;
-                        detailsContainer.appendChild(flightLevelInfo);
+                        const iflInfo = document.createElement('p');
+                        iflInfo.textContent = `IFL: ${strip.ifl || 'N/A'}`;
+                        detailsContainer.appendChild(iflInfo);
+
+                        const flInfo = document.createElement('p');
+                        flInfo.textContent = `FL: ${strip.fl || 'N/A'}`;
+                        detailsContainer.appendChild(flInfo);
 
                         const squawkInfo = document.createElement('p');
                         squawkInfo.textContent = `Squawk: ${strip.squawk || 'N/A'}`;
@@ -243,7 +248,7 @@
                         deleteIcon.className = 'delete-icon';
                         deleteIcon.innerHTML = '&#10006;';
                         deleteIcon.onclick = function (event) {
-                            event.stopPropagation(); // Prevents the box from being highlighted when clicking the delete icon
+                            event.stopPropagation();
                             flightManager.removeFlightStrip(strip.squawk);
                         };
 
@@ -276,9 +281,45 @@
             this.isSquawkCodeTaken = function (code) {
                 return this.flightStrips.some(strip => strip.squawk === code);
             };
+
+            this.clearHighlights = function () {
+                this.flightStrips.forEach(strip => strip.highlighted = false);
+                this.displayFlightStrips();
+            };
         }
 
         const flightManager = new FlightStripManager();
+
+        // Function to parse Flight Level from the flight plan
+        function parseFlightLevel(flightLevel) {
+            if (flightLevel && flightLevel.toUpperCase().startsWith('FL')) {
+                return parseInt(flightLevel.substring(2), 10);
+            } else {
+                return flightLevel;
+            }
+        }
+
+        // Function to parse flight plan and create a FlightStrip object
+        function parseFlightPlan(flightPlanText) {
+            const lines = flightPlanText.split('\n');
+            const flightStrip = {};
+
+            lines.forEach(function (line) {
+                const [key, ...values] = line.split(':').map(item => item.trim());
+                flightStrip[key] = values.join(':').trim();
+            });
+
+            return new FlightStrip(
+                flightStrip.Callsign || 'N/A',
+                flightStrip.Aircraft || 'N/A',
+                flightStrip['IFR/VFR'] || 'N/A',
+                flightStrip.Departure || '',
+                flightStrip.Arrival || '',
+                flightStrip.IFL || 'N/A',
+                parseFlightLevel(flightStrip.FL) || 'N/A',
+                flightManager.generateSquawkCode()
+            );
+        }
 
         function addFlightStrip() {
             const flightPlanInput = document.getElementById('flightPlan');
@@ -291,30 +332,6 @@
                 flightPlanInput.value = '';
             } else {
                 alert('Invalid flight plan format. Please check and try again.');
-            }
-        }
-
-        function parseFlightPlan(flightPlanText) {
-            const lines = flightPlanText.split('\n');
-            const flightStrip = {};
-
-            lines.forEach(function (line) {
-                const [key, ...values] = line.split(':').map(item => item.trim());
-                flightStrip[key] = values.join(':').trim();
-            });
-
-            if (flightStrip.Callsign && flightStrip.Aircraft && (flightStrip.Departing || flightStrip.Arriving) && flightStrip.Route && flightStrip['Flight Level']) {
-                return new FlightStrip(
-                    flightStrip.Callsign,
-                    flightStrip.Aircraft,
-                    flightStrip.Departing,
-                    flightStrip.Arriving,
-                    flightStrip.Route,
-                    flightStrip['Flight Level'],
-                    flightManager.generateSquawkCode()
-                );
-            } else {
-                return null;
             }
         }
 
