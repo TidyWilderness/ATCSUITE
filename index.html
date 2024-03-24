@@ -301,25 +301,30 @@
 
         // Function to parse flight plan and create a FlightStrip object
         function parseFlightPlan(flightPlanText) {
-            const lines = flightPlanText.split('\n');
-            const flightStrip = {};
+    const lines = flightPlanText.split('\n');
+    const flightStrip = {};
 
-            lines.forEach(function (line) {
-                const [key, ...values] = line.split(':').map(item => item.trim());
-                flightStrip[key] = values.join(':').trim();
-            });
+    lines.forEach(function (line) {
+        let [key, ...values] = line.split(':').map(item => item.trim());
+        
+        // Check for abbreviated departure and arrival codes
+        if (key === 'DEP') key = 'Departure';
+        if (key === 'ARR') key = 'Arrival';
+        
+        flightStrip[key] = values.join(':').trim();
+    });
 
-            return new FlightStrip(
-                flightStrip.Callsign || 'N/A',
-                flightStrip.Aircraft || 'N/A',
-                flightStrip['IFR/VFR'] || 'N/A',
-                flightStrip.Departure || '',
-                flightStrip.Arrival || '',
-                flightStrip.IFL || 'N/A',
-                parseFlightLevel(flightStrip.FL) || 'N/A',
-                flightManager.generateSquawkCode()
-            );
-        }
+    return new FlightStrip(
+        flightStrip.Callsign || 'N/A',
+        flightStrip.Aircraft || 'N/A',
+        flightStrip['IFR/VFR'] || 'N/A',
+        flightStrip.Departure || '',
+        flightStrip.Arrival || '',
+        flightStrip.IFL || 'N/A',
+        parseFlightLevel(flightStrip.FL) || 'N/A',
+        flightManager.generateSquawkCode()
+    );
+}
 
         function addFlightStrip() {
             const flightPlanInput = document.getElementById('flightPlan');
